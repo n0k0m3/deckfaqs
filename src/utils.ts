@@ -1,13 +1,10 @@
-import { ServerAPI } from 'decky-frontend-lib';
+import { executeInTab } from '@decky/api';
 import DOMPurify from 'dompurify';
 import React from 'react';
 import { SearchResult } from './components/List/GameList';
 import { ListItem } from './components/List/List';
 import { ActionType, AppActions } from './reducers/AppReducer';
-
-export type DefaultProps = {
-    serverApi: ServerAPI;
-};
+import { listSteamTabs, unwrapTabResult } from './steamTabs';
 
 const getGuideCode = `function parseList(list) {
     let newT = [];
@@ -61,7 +58,6 @@ const MAX_POLLING = 100;
 
 export const getContent = async (
     url: string,
-    serverApi: ServerAPI,
     browserView: any,
     code: string,
     handleResult: Function
@@ -71,22 +67,16 @@ export const getContent = async (
     let maxPolling = 0;
     while (maxPolling < MAX_POLLING) {
         maxPolling++;
-        const response = await serverApi.fetchNoCors<{ body: string }>(
-            'http://localhost:8080/json'
-        );
-        let tabs: Array<any> = [];
-        if (response.success) tabs = JSON.parse(response.result.body);
+        const tabs = await listSteamTabs();
         const tab = tabs.find(
             (a) => a.url === encodeURI(url).replace(/'/g, '%27')
         );
         if (tab && tab.title) {
             try {
-                const result: any = await serverApi.executeInTab(
-                    tab.title,
-                    true,
-                    code
+                const result = unwrapTabResult(
+                    await executeInTab(tab.title, true, code)
                 );
-                htmlResult = result.result.result;
+                if (result.ok) htmlResult = result.value;
             } catch (e) {}
         }
         if (htmlResult) break;
@@ -98,7 +88,6 @@ export const getContent = async (
 
 export const getGuideHtml = async (
     url: string,
-    serverApi: ServerAPI,
     browserView: any,
     handleResult: Function
 ) => {
@@ -109,21 +98,15 @@ export const getGuideHtml = async (
     let maxPolling = 0;
     while (maxPolling < MAX_POLLING) {
         maxPolling++;
-        const response = await serverApi.fetchNoCors<{ body: string }>(
-            'http://localhost:8080/json'
-        );
-        let tabs: Array<any> = [];
-        if (response.success) tabs = JSON.parse(response.result.body);
+        const tabs = await listSteamTabs();
         const tab = tabs.find((a) => a.url === url);
         if (tab && tab.title) {
             try {
-                const result: any = await serverApi.executeInTab(
-                    tab.title,
-                    true,
-                    getGuideCode
+                const result = unwrapTabResult(
+                    await executeInTab(tab.title, true, getGuideCode)
                 );
 
-                let htmlBody = result.result.result;
+                let htmlBody = result.ok ? result.value : undefined;
                 if (htmlBody) {
                     htmlBody = JSON.parse(htmlBody);
                     htmlResult = DOMPurify.sanitize(htmlBody.guide ?? '');
@@ -140,7 +123,6 @@ export const getGuideHtml = async (
 
 export const gameSearch = async (
     game: string,
-    serverApi: ServerAPI,
     browserView: any,
     dispatch: React.Dispatch<AppActions>
 ) => {
@@ -153,7 +135,6 @@ export const gameSearch = async (
     });
     getContent(
         searchUrl,
-        serverApi,
         browserView,
         `function get_games() {
             if(document.documentElement) {

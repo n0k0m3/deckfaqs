@@ -1,4 +1,4 @@
-import { ModalRootProps, ModalRoot, TextField } from 'decky-frontend-lib';
+import { ModalRootProps, ModalRoot, TextField } from '@decky/ui';
 import React, { useEffect, useRef, useState } from 'react';
 
 type MyProps = ModalRootProps & {
@@ -19,7 +19,7 @@ export const SearchModal = ({
         setModalResult && setModalResult(searchText);
         closeModal && closeModal();
     };
-    const textField = useRef<any>();
+    const textField = useRef<any>(null);
 
     useEffect(() => {
         //This will open up the virtual keyboard

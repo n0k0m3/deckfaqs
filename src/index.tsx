@@ -1,24 +1,25 @@
-import { definePlugin, Router, ServerAPI, staticClasses } from 'decky-frontend-lib';
-import React from 'react';
+import { definePlugin, routerHook } from '@decky/api';
+import { Router, staticClasses } from '@decky/ui';
 import { FaSearch } from 'react-icons/fa';
 import { App } from './components/App/App';
 import { AppContextProvider } from './context/AppContext';
 
-export default definePlugin((serverApi: ServerAPI) => {
-    const windowRouter = Router.WindowStore?.GamepadUIMainWindowInstance
+export default definePlugin(() => {
+    const windowRouter = Router.WindowStore?.GamepadUIMainWindowInstance;
     // @ts-ignore
-    const browserView = windowRouter?.CreateBrowserView("DeckFAQs");
+    const browserView = windowRouter?.CreateBrowserView('DeckFAQs');
     return {
-        title: <div className={staticClasses.Title}>DeckFAQs</div>,
+        name: 'DeckFAQs',
+        titleView: <div className={staticClasses.Title}>DeckFAQs</div>,
         content: (
             <AppContextProvider browserView={browserView}>
-                <App serverApi={serverApi} />
+                <App />
             </AppContextProvider>
         ),
         icon: <FaSearch />,
         onDismount() {
             SteamClient.BrowserView.Destroy(browserView);
-            serverApi.routerHook.removeRoute('/deckfaqs-fullscreen');
+            routerHook.removeRoute('/deckfaqs-fullscreen');
         },
         alwaysRender: true,
     };

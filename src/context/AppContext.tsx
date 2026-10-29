@@ -68,6 +68,7 @@ export const AppContext = createContext<TAppContext>({
 });
 
 type AppContextProps = {
+    children?: React.ReactNode;
     incomingState?: TAppState;
     browserView: any;
 };

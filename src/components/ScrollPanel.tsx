@@ -1,5 +1,5 @@
-import { findModuleChild } from 'decky-frontend-lib';
-import { VFC, ReactNode, HTMLAttributes, RefAttributes } from 'react';
+import { ScrollPanelGroup } from '@decky/ui';
+import { FC, ReactNode, HTMLAttributes, RefAttributes } from 'react';
 
 //Unclear how many of these have an effect (also probably not exhaustive)
 interface ScrollPanelProps extends HTMLAttributes<HTMLDivElement> {
@@ -14,16 +14,9 @@ interface ScrollPanelProps extends HTMLAttributes<HTMLDivElement> {
     onCancelButton?: (e: CustomEvent) => void;
 }
 
-export const ScrollPanel: any = findModuleChild((m) => {
-    if (typeof m !== 'object') return undefined;
-    for (let prop in m) {
-        if (
-            m[prop]?.render
-                ?.toString()
-                ?.includes(
-                    '["onOKButton","onCancelButton","navRef","focusable"]'
-                )
-        )
-            return m[prop];
-    }
-}) as VFC<ScrollPanelProps & RefAttributes<HTMLDivElement>>;
+// Steam's ScrollPanelGroup, the component upstream found by its props. It scrolls on D-pad input.
+// @decky/ui's ScrollPanel is a different, plain scroll container with no gamepad handling.
+// @decky/ui types it with children only, but it takes the props above.
+export const ScrollPanel = ScrollPanelGroup as FC<
+    ScrollPanelProps & RefAttributes<HTMLDivElement>
+>;
