@@ -4,7 +4,13 @@ import React from 'react';
 import { SearchResult } from './components/List/GameList';
 import { ListItem } from './components/List/List';
 import { ActionType, AppActions } from './reducers/AppReducer';
-import { listSteamTabs, unwrapTabResult } from './steamTabs';
+import {
+    isLoadedTab,
+    listSteamTabs,
+    POLL_EVAL_TIMEOUT_MS,
+    unwrapTabResult,
+    withTimeout,
+} from './steamTabs';
 
 const getGuideCode = `function parseList(list) {
     let newT = [];
@@ -71,10 +77,14 @@ export const getContent = async (
         const tab = tabs.find(
             (a) => a.url === encodeURI(url).replace(/'/g, '%27')
         );
-        if (tab && tab.title) {
+        if (isLoadedTab(tab)) {
             try {
                 const result = unwrapTabResult(
-                    await executeInTab(tab.title, true, code)
+                    await withTimeout(
+                        executeInTab(tab.title, true, code),
+                        POLL_EVAL_TIMEOUT_MS,
+                        'no answer'
+                    )
                 );
                 if (result.ok) htmlResult = result.value;
             } catch (e) {}
@@ -100,10 +110,14 @@ export const getGuideHtml = async (
         maxPolling++;
         const tabs = await listSteamTabs();
         const tab = tabs.find((a) => a.url === url);
-        if (tab && tab.title) {
+        if (isLoadedTab(tab)) {
             try {
                 const result = unwrapTabResult(
-                    await executeInTab(tab.title, true, getGuideCode)
+                    await withTimeout(
+                        executeInTab(tab.title, true, getGuideCode),
+                        POLL_EVAL_TIMEOUT_MS,
+                        'no answer'
+                    )
                 );
 
                 let htmlBody = result.ok ? result.value : undefined;
