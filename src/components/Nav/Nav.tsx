@@ -92,6 +92,7 @@ export const Nav = () => {
                                     minWidth: '0px',
                                     marginRight: '5px',
                                 }}
+                                aria-label="Home"
                                 onClick={backToGames}
                             >
                                 <FaHome
@@ -112,6 +113,7 @@ export const Nav = () => {
                                 //@ts-ignore
                                 disableNavSounds={true}
                                 style={btnStyle}
+                                aria-label="Reload guide"
                                 onClick={reload}
                             >
                                 <FiRotateCw
@@ -147,6 +149,7 @@ export const Nav = () => {
                                     marginRight: '5px',
                                     minWidth: '0px',
                                 }}
+                                aria-label="Full screen"
                                 onClick={() => {
                                     Navigation.CloseSideMenus();
                                     setTimeout(
