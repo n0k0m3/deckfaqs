@@ -27,17 +27,16 @@ export const SearchModal = ({
     }, []);
     return (
         <ModalRoot closeModal={handleSubmit}>
-            <form>
-                <TextField
-                    //@ts-ignore
-                    ref={textField}
-                    focusOnMount={true}
-                    label="Search"
-                    //@ts-ignore
-                    placeholder={promptText}
-                    onChange={handleText}
-                />
-            </form>
+            {/* No <form> here: ModalRoot already renders one, and Enter in a nested form navigates the Big Picture window away from Steam's UI */}
+            <TextField
+                //@ts-ignore
+                ref={textField}
+                focusOnMount={true}
+                label="Search"
+                //@ts-ignore
+                placeholder={promptText}
+                onChange={handleText}
+            />
         </ModalRoot>
     );
 };
