@@ -1,11 +1,20 @@
 import {
     DialogButton,
     Focusable,
+    GamepadButton,
+    GamepadEvent,
     Navigation,
     QuickAccessTab,
     Router,
 } from '@decky/ui';
-import { useContext, useMemo, useRef } from 'react';
+import {
+    ElementType,
+    ReactNode,
+    useContext,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { useEffect } from 'react';
 import {
     AppContext,
@@ -15,6 +24,7 @@ import {
 import parse, {
     HTMLReactParserOptions,
     Element,
+    attributesToProps,
     domToReact,
     DOMNode,
 } from 'html-react-parser';
@@ -28,6 +38,126 @@ import Mark from './mark';
 
 type GuideProps = {
     fullscreen?: boolean;
+};
+
+// The guide renders in Steam's menu window, not in the plugin's window, so this code uses
+// ownerDocument and no instanceof checks.
+
+// Partly in the guide's view. The A button acts on the focused element, also after the D-pad
+// scrolled it out of view, so actions check this first.
+const inView = (target: EventTarget | null) => {
+    const element = target as HTMLElement | null;
+    const panel = element?.closest?.('.deckfaqs_scrollpanel');
+    if (!element || !panel) return true;
+    const box = element.getBoundingClientRect();
+    const view = panel.getBoundingClientRect();
+    return box.bottom > view.top && box.top < view.bottom;
+};
+
+// Steam's navigation handle of a Focusable (its navRef). element.focus() moves only the browser
+// focus, and Steam keeps sending the A button to the node that it thinks has focus.
+type NavHandle = { TakeFocus: (button?: GamepadButton) => boolean };
+const navHandles = new WeakMap<object, NavHandle>();
+
+// Props for a link or spoiler Focusable: it registers its navigation handle for moveInView
+const useGuideItem = () => {
+    const element = useRef<HTMLDivElement>(null);
+    const navRef = useRef<NavHandle>(null);
+    useEffect(() => {
+        if (element.current && navRef.current) {
+            navHandles.set(element.current, navRef.current);
+        }
+    });
+    return { ref: element, navRef, className: 'deckfaqs_item' };
+};
+
+// D-pad up and down move between the links and spoilers in view. With none left in view, the
+// handler returns false and Steam's scroll panel scrolls the text. It starts from the view, not
+// from the last focused item, so a TOC jump or a touch scroll does not pull the view back.
+const moveInView = (content: HTMLElement, evt: GamepadEvent) => {
+    const button = evt.detail.button;
+    const down = button === GamepadButton.DIR_DOWN;
+    if (!down && button !== GamepadButton.DIR_UP) return false;
+    const items = [
+        ...content.querySelectorAll<HTMLElement>('.deckfaqs_item'),
+    ].filter(inView);
+    if (!down) items.reverse();
+    const current = items.indexOf(
+        content.ownerDocument.activeElement as HTMLElement
+    );
+    const next = items[current + 1];
+    const handle = next && navHandles.get(next);
+    return !!handle && handle.TakeFocus(button);
+};
+
+// Links and spoilers are Focusable, so the D-pad and the A button reach them.
+// Focusable calls onActivate for a click (or a tap) and for the A button.
+type GuideLinkProps = {
+    attribs: Record<string, string>;
+    onFollow: () => void;
+    children: ReactNode;
+};
+const GuideLink = ({ attribs, onFollow, children }: GuideLinkProps) => (
+    <Focusable
+        {...useGuideItem()}
+        style={{ display: 'inline' }}
+        noFocusRing
+        focusClassName="deckfaqs_focus"
+        onActivate={(e) => {
+            // A link can be in a spoiler: do not also toggle the spoiler
+            e.stopPropagation();
+            if (inView(e.currentTarget)) onFollow();
+        }}
+    >
+        <a
+            {...attribs}
+            className="deckfaqs-link"
+            onClick={(e) => e.preventDefault()}
+        >
+            {children}
+        </a>
+    </Focusable>
+);
+
+const isSpoiler = (node: Element) =>
+    (node.attribs.class ?? '')
+        .split(/\s+/)
+        .some((name) => name === 'fspoiler' || name === 'spoiler_box') ||
+    node.attribs['data-spoiler'] === 'inline';
+
+// Defined at module level, so React keeps the reveal state when the guide re-renders for an anchor
+const Spoiler = ({
+    node,
+    options,
+}: {
+    node: Element;
+    options: HTMLReactParserOptions;
+}) => {
+    const [revealed, setRevealed] = useState(false);
+    const item = useGuideItem();
+    const Tag = node.name as ElementType;
+    const props = attributesToProps(node.attribs);
+    return (
+        <Focusable
+            {...item}
+            style={{ display: node.name === 'div' ? 'block' : 'inline' }}
+            noFocusRing
+            focusClassName="deckfaqs_focus"
+            onActivate={(e) => {
+                e.stopPropagation();
+                if (inView(e.currentTarget)) setRevealed(!revealed);
+            }}
+        >
+            <Tag
+                {...props}
+                className={`${props.className ?? ''}${
+                    revealed ? ' deckfaqs_revealed' : ''
+                }`}
+            >
+                {domToReact(node.children as DOMNode[], options)}
+            </Tag>
+        </Focusable>
+    );
 };
 
 export const Guide = ({ fullscreen }: GuideProps) => {
@@ -102,11 +232,9 @@ export const Guide = ({ fullscreen }: GuideProps) => {
                 if (domNode.attribs.href.startsWith('#')) {
                     anchor = domNode.attribs.href.substring(1);
                     return (
-                        <a
-                            {...domNode.attribs}
-                            className="deckfaqs-link"
-                            onClick={(e) => {
-                                e.preventDefault();
+                        <GuideLink
+                            attribs={domNode.attribs}
+                            onFollow={() => {
                                 dispatch({
                                     type: ActionType.UPDATE_GUIDE,
                                     payload: { ...currentGuide, anchor },
@@ -114,16 +242,14 @@ export const Guide = ({ fullscreen }: GuideProps) => {
                             }}
                         >
                             {domToReact(children as DOMNode[])}
-                        </a>
+                        </GuideLink>
                     );
                 } else {
                     anchor = domNode.attribs.href;
                     return (
-                        <a
-                            {...domNode.attribs}
-                            className="deckfaqs-link"
-                            onClick={(e) => {
-                                e.preventDefault();
+                        <GuideLink
+                            attribs={domNode.attribs}
+                            onFollow={() => {
                                 loadGuidePage(
                                     currentGuide,
                                     anchor,
@@ -150,9 +276,15 @@ export const Guide = ({ fullscreen }: GuideProps) => {
                             }}
                         >
                             {domToReact(children as DOMNode[])}
-                        </a>
+                        </GuideLink>
                     );
                 }
+            } else if (
+                domNode instanceof Element &&
+                domNode.attribs &&
+                isSpoiler(domNode)
+            ) {
+                return <Spoiler node={domNode} options={options} />;
             } else if (
                 domNode instanceof Element &&
                 domNode.name === 'div' &&
@@ -294,34 +426,20 @@ export const Guide = ({ fullscreen }: GuideProps) => {
                 <>
                     <style>
                         {`
-                        @keyframes deckfaqs_outline_grow {
-                          0% {
-                            outline: 12px solid;
-                          }
-                          100% {
-                            outline: 2px solid;
-                          }
-                        }
-                        @keyframes deckfaqs_outline_fade {
-                          0% {
-                            outline-color: rgba(255, 255, 255, 0);
-                          }
-                          100% {
-                            outline-color: rgba(255, 255, 255, 0.6);
-                          }
-                        }
-                        @keyframes deckfaqs_blinker {
-                          50% {
-                            outline-color: rgba(255, 255, 255, 0.0);
-                          }
-                        }
                       .deckfaqs_highlight {
                         background-color: #FFFF00;
                       }
-                      .deckfaqs_scrollpanel:focus {
+                      .deckfaqs_scrollpanel:focus-within {
                         outline: 2px solid rgba(255, 255, 255, 0.6);
                         outline-offset: 2px;
-                        animation: deckfaqs_outline_grow 0.4s ease, deckfaqs_outline_fade 0.4s ease, deckfaqs_blinker 1.2s ease-in-out 0.4s 20;
+                      }
+                      .deckfaqs_focus {
+                        outline: 3px solid #1a9fff;
+                        outline-offset: 1px;
+                        border-radius: 2px;
+                      }
+                      .deckfaqs_dark .deckfaqs_focus {
+                        outline-color: #e56000;
                       }
                       .deckfaqs_dark {
                         filter: invert(1)
@@ -394,6 +512,12 @@ export const Guide = ({ fullscreen }: GuideProps) => {
                         background-color: #bbb;
                         border-color: #d9d9d9;
                         color: #bbb;
+                      }
+                      .ffaq .fspoiler.deckfaqs_revealed,
+                      .ffaq .fspoiler.deckfaqs_revealed a,
+                      .ffaq div.spoiler_box.deckfaqs_revealed,
+                      .ffaq i[data-spoiler="inline"].deckfaqs_revealed {
+                        color: #0d0d0d;
                       }
                       .ffaq i[data-spoiler="inline"] {
                         font-style: normal;
@@ -679,27 +803,30 @@ export const Guide = ({ fullscreen }: GuideProps) => {
                         width: 100%;
                       }`}
                     </style>
+                    {/* Not focusable itself: the D-pad goes straight to the guide and scrolls it.
+                        60% per press, like Steam's own long-text panels; the default is 30%. */}
                     <ScrollPanel
-                        onOKButton={() => {
-                            guideDiv.current?.focus();
-                        }}
+                        focusable={false}
+                        scrollStepPercent={60}
                         style={{
                             flexGrow: '1',
                             overflow: 'auto',
                             height: '100%',
                             margin: fullscreen ? '10px' : '0px',
                         }}
-                        className={
-                            fullscreen ? undefined : 'deckfaqs_scrollpanel'
-                        }
-                        noFocusRing={!fullscreen}
+                        className="deckfaqs_scrollpanel"
                     >
                         <Focusable
-                            //@ts-ignore
-                            focusableIfNoChildren={true}
+                            //@ts-ignore Steam's Focusable takes it, @decky/ui does not type it
+                            focusable={true}
+                            noFocusRing
                             style={{ background: '#fff' }}
                             className={state.darkMode ? 'deckfaqs_dark' : ''}
                             ref={guideDiv}
+                            onGamepadDirection={(evt) =>
+                                !!guideDiv.current &&
+                                moveInView(guideDiv.current, evt)
+                            }
                         >
                             {parse(currentGuide?.guideHtml ?? '', options)}
                         </Focusable>
