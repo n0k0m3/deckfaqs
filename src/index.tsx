@@ -5,9 +5,16 @@ import { App } from './components/App/App';
 import { AppContextProvider } from './context/AppContext';
 
 export default definePlugin(() => {
-    const windowRouter = Router.WindowStore?.GamepadUIMainWindowInstance;
-    // @ts-ignore
-    const browserView = windowRouter?.CreateBrowserView('DeckFAQs Offline');
+    // Created on first use: when Steam starts in desktop mode, the gamepad window does not exist yet
+    let view: any;
+    const browserView = {
+        LoadURL(url: string) {
+            const steamWindow = Router.WindowStore
+                ?.GamepadUIMainWindowInstance as any;
+            view ??= steamWindow?.CreateBrowserView('DeckFAQs Offline');
+            view?.LoadURL(url);
+        },
+    };
     return {
         name: 'DeckFAQs Offline',
         titleView: <div className={staticClasses.Title}>DeckFAQs Offline</div>,
@@ -18,7 +25,8 @@ export default definePlugin(() => {
         ),
         icon: <FaSearch />,
         onDismount() {
-            SteamClient.BrowserView.Destroy(browserView);
+            // SteamClient.BrowserView.Destroy no longer closes the view on current Steam builds
+            view?.Destroy?.();
             routerHook.removeRoute('/deckfaqs-offline-fullscreen');
         },
         alwaysRender: true,
