@@ -104,3 +104,7 @@ dist
 .tern-port
 out
 __pycache__
+test-results
+playwright-report
+e2e/.screensaver-backup.json
+e2e/.ssh-tunnel-pid

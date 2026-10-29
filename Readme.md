@@ -39,6 +39,41 @@ GameFAQs blocks requests that do not come from a browser. The plugin loads the g
 3. Copy `out/deckfaqs-offline.zip` to the Deck, or serve it over HTTP.
 4. In Decky, open **Settings > Developer** and install the zip with **Install Plugin from ZIP** or **Install Plugin from URL**.
 
+## End-to-end tests
+
+The tests in `e2e/` drive the installed plugin on a real handheld in Game Mode. They use Playwright over Steam's DevTools port, and a virtual touchscreen for real taps.
+
+### Requirements
+
+- SSH access to the device without a password prompt. Set `DFQ_HOST` to its host name or SSH alias.
+- Decky Loader with this plugin installed.
+- On the device: `python-evdev`, `xprop`, and write access to `/dev/uinput` for the Game Mode user.
+- No game running. The tests tap the screen, and they stop if a game runs.
+- A network connection on the device. The tests search GameFAQs for *The Legend of Heroes: Trails of Cold Steel* and use two of its guides (`GAME`, `SMALL_GUIDE` and `PAGED_GUIDE` in `e2e/steam.ts`). The game does not need to be installed.
+- A handheld whose internal panel is natively landscape. The touch helper reads the screen size from the panel's DRM mode, and it does not rotate coordinates for a portrait panel such as the Steam Deck's.
+
+### Run
+
+1. Install the current build on the device.
+2. Run `DFQ_HOST=<ssh host> PLAYWRIGHT_HTML_OPEN=never npx playwright test`.
+3. Open `playwright-report/index.html` for the results. The touch test attaches full-frame device screenshots.
+
+### How it works
+
+- `e2e/global-setup.ts` copies `e2e/device/dfq_device.py` to the device and opens an SSH tunnel to Steam's DevTools port (8080).
+- The tests attach with `connectOverCDP` and never close Steam's pages or browser.
+- `e2e/device/dfq_device.py` takes gamescope's full composited frame and runs a virtual touchscreen through `/dev/uinput`.
+- The touch test measures the screen origin of the Quick Access window with one tap on a transparent overlay. Each tap must land within 8 CSS pixels of its target, on the target itself.
+- The controller test sends buttons through Steam's focus navigation (`FocusNavController.DispatchVirtualButtonClick`), the same path that Steam Input uses. It checks the node that Steam treats as focused, because Steam sends the A button there.
+
+### Safety measures
+
+These come from real failures on the test device:
+
+- Steam started its screensaver during runs (on AC power after 5 minutes without input; CDP input and virtual touch do not count as input). Twice, with Playwright attached, the new screensaver window froze Steam's UI thread. The setup now sets both screensaver timeouts to 0 and saves your values in `e2e/.screensaver-backup.json`. The teardown restores them and deletes the file. If a run crashes, the next run keeps the saved values.
+- A native form submit in the Big Picture window navigates it away from Steam's UI. A listener cancels any submit that the app does not handle, and the test fails.
+- After each test, the suite checks that Steam's UI thread still answers. The run stops at the first failure (`maxFailures: 1`).
+
 # DeckFAQs
 
 ## Description

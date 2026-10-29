@@ -4,7 +4,8 @@
     "description": "GameFAQs browser for the Steam Deck with offline guides",
     "scripts": {
         "build": "rollup -c",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "e2e": "playwright test"
     },
     "author": "hulkrelax",
     "license": "MIT",
@@ -12,7 +13,9 @@
     "devDependencies": {
         "@decky/rollup": "1.0.2",
         "@decky/ui": "4.12.0",
+        "@playwright/test": "^1.64.1",
         "@types/dompurify": "^2.4.0",
+        "@types/node": "22",
         "@types/react": "19.1.1",
         "@types/react-dom": "19.1.1",
         "@types/react-router": "5.1.20",
