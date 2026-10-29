@@ -6,7 +6,7 @@ import { getGuideHtml } from '../../utils';
 
 export const GuideList = () => {
     const {
-        state: { guides },
+        state: { guides, currentGame },
         dispatch,
         browserView,
     } = useContext(AppContext);
@@ -26,6 +26,8 @@ export const GuideList = () => {
                         guideHtml: result,
                         guideUrl: url,
                         guideToc: toc,
+                        title: guides.find((guide) => guide.url === url)?.text,
+                        game: currentGame,
                     },
                 });
             }

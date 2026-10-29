@@ -1,8 +1,9 @@
 import React, { createContext, useReducer } from 'react';
 import { ListItem } from '../components/List/List';
+import { DownloadProgress, SavedGuide } from '../offline';
 import { AppActions, appReducer } from '../reducers/AppReducer';
 
-export type PluginState = 'games' | 'results' | 'guides' | 'guide';
+export type PluginState = 'games' | 'results' | 'guides' | 'guide' | 'offline';
 
 export type TableOfContentEntry = {
     data: any;
@@ -15,6 +16,12 @@ export type GuideContents = {
     guideToc?: Array<TableOfContentEntry>;
     currentTocSection?: any;
     anchor?: string;
+    title?: string;
+    game?: string;
+    // Set when the guide comes from local storage
+    offlineId?: string;
+    // Maps an image src to a data URL for offline guides
+    images?: Record<string, string>;
 };
 
 export type GuideSearch = {
@@ -40,6 +47,9 @@ export type TAppState = {
     currentGuide?: GuideContents;
     search: GuideSearch;
     browserView: any;
+    currentGame?: string;
+    savedGuides: SavedGuide[];
+    download?: DownloadProgress & { title: string };
 };
 
 type TAppContext = {
@@ -59,6 +69,9 @@ export const initialState: TAppState = {
     isLoading: false,
     search: initSearchState,
     browserView: undefined,
+    currentGame: undefined,
+    savedGuides: [],
+    download: undefined,
 };
 
 export const AppContext = createContext<TAppContext>({

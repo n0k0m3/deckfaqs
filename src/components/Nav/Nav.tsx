@@ -17,10 +17,11 @@ import { gameSearch, getGuideHtml } from '../../utils';
 import { Search } from './Search';
 import { SearchModal } from './SearchModal';
 import { TocDropdown } from './TocDropdown';
+import { DownloadButton } from '../Offline/Download';
 
 export const Nav = () => {
     const {
-        state: { pluginState, currentGuide, darkMode },
+        state: { pluginState, currentGuide, darkMode, savedGuides },
         dispatch,
         browserView,
     } = useContext(AppContext);
@@ -42,6 +43,8 @@ export const Nav = () => {
                             guideHtml: result,
                             guideUrl: currentGuide?.guideUrl,
                             guideToc: toc,
+                            title: currentGuide?.title,
+                            game: currentGuide?.game,
                         },
                     });
                 }
@@ -80,7 +83,7 @@ export const Nav = () => {
                             marginBottom: '5px',
                         }}
                     >
-                        {pluginState !== 'results' && (
+                        {pluginState !== 'results' && pluginState !== 'offline' && (
                             <DialogButton
                                 //@ts-ignore
                                 disableNavSounds={true}
@@ -100,6 +103,11 @@ export const Nav = () => {
                             </DialogButton>
                         )}
                         {pluginState === 'guide' && (
+                            <DownloadButton
+                                style={{ ...btnStyle, marginRight: '5px' }}
+                            />
+                        )}
+                        {pluginState === 'guide' && !currentGuide?.offlineId && (
                             <DialogButton
                                 //@ts-ignore
                                 disableNavSounds={true}
@@ -183,6 +191,21 @@ export const Nav = () => {
                     >
                         Search games
                     </DialogButton>
+                    <DialogButton
+                        //@ts-ignore
+                        disableNavSounds={true}
+                        style={{
+                            marginBottom: '10px',
+                        }}
+                        onClick={() =>
+                            dispatch({
+                                type: ActionType.BACK_TO_STATE,
+                                payload: 'offline',
+                            })
+                        }
+                    >
+                        Offline guides ({savedGuides.length})
+                    </DialogButton>
                     <ToggleField
                         label="Enable Dark Mode?"
                         description={`Enable Dark Mode for Guides`}
@@ -191,6 +214,13 @@ export const Nav = () => {
                     />
                 </div>
             ),
-        [pluginState, darkMode, currentGuide?.guideToc]
+        [
+            pluginState,
+            darkMode,
+            currentGuide?.guideToc,
+            currentGuide?.guideUrl,
+            currentGuide?.offlineId,
+            savedGuides,
+        ]
     );
 };

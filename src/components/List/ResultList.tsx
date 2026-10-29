@@ -17,7 +17,12 @@ export const ResultList = () => {
         const faqUrl = `${url}/faqs`;
         dispatch({
             type: ActionType.UPDATE_PLUGIN_STATE,
-            payload: { pluginState: 'guides', isLoading: true },
+            payload: {
+                pluginState: 'guides',
+                isLoading: true,
+                currentGame: searchResults.find((result) => result.url === url)
+                    ?.text,
+            },
         });
         getContent(
             faqUrl,

@@ -1,4 +1,5 @@
 import { ListItem } from '../components/List/List';
+import { SavedGuide } from '../offline';
 import {
     GuideContents,
     GuideSearch,
@@ -18,6 +19,8 @@ export enum ActionType {
     UPDATE_DARK_MODE,
     UPDATE_LOADING,
     UPDATE_SEARCH,
+    UPDATE_SAVED_GUIDES,
+    UPDATE_DOWNLOAD,
 }
 
 export type AppActions =
@@ -31,7 +34,19 @@ export type AppActions =
     | BackToStateAction
     | UpdateDarkModeAction
     | UpdateLoadingAction
-    | UpdateSearchAction;
+    | UpdateSearchAction
+    | UpdateSavedGuidesAction
+    | UpdateDownloadAction;
+
+export type UpdateSavedGuidesAction = {
+    type: ActionType.UPDATE_SAVED_GUIDES;
+    payload: SavedGuide[];
+};
+
+export type UpdateDownloadAction = {
+    type: ActionType.UPDATE_DOWNLOAD;
+    payload: TAppState['download'];
+};
 
 export type UpdateSearchAction = {
     type: ActionType.UPDATE_SEARCH;
@@ -46,6 +61,7 @@ export type UpdateLoadingAction = {
 type UpdatePluginState = {
     pluginState: PluginState;
     isLoading: boolean;
+    currentGame?: string;
 };
 
 export type UpdatePluginStateAction = {
@@ -144,7 +160,9 @@ export const appReducer = (state: TAppState, action: AppActions): TAppState => {
                     newPluginState = 'results';
                     break;
                 case 'guide':
-                    newPluginState = 'guides';
+                    newPluginState = state.currentGuide?.offlineId
+                        ? 'offline'
+                        : 'guides';
                     break;
                 default:
                     newPluginState = 'games';
@@ -176,6 +194,16 @@ export const appReducer = (state: TAppState, action: AppActions): TAppState => {
             return {
                 ...state,
                 search: action.payload,
+            };
+        case ActionType.UPDATE_SAVED_GUIDES:
+            return {
+                ...state,
+                savedGuides: action.payload,
+            };
+        case ActionType.UPDATE_DOWNLOAD:
+            return {
+                ...state,
+                download: action.payload,
             };
         default:
             return state;

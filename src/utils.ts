@@ -3,6 +3,8 @@ import DOMPurify from 'dompurify';
 import React from 'react';
 import { SearchResult } from './components/List/GameList';
 import { ListItem } from './components/List/List';
+import { GuideContents, TableOfContentEntry } from './context/AppContext';
+import { loadOfflinePage, offlineTarget } from './offline';
 import { ActionType, AppActions } from './reducers/AppReducer';
 import {
     isLoadedTab,
@@ -177,4 +179,30 @@ export const gameSearch = async (
             });
         }
     );
+};
+
+// Loads one page of the current guide from local storage for offline guides, or from GameFAQs.
+// path is relative to the guide root, for example "limgrave", "limgrave#boss" or "#boss".
+export const loadGuidePage = (
+    guide: GuideContents | undefined,
+    path: string,
+    browserView: any,
+    handleResult: (
+        html: string,
+        toc?: Array<TableOfContentEntry>,
+        images?: Record<string, string>
+    ) => void
+) => {
+    const guideUrl = guide?.guideUrl ?? '';
+    if (guide?.offlineId) {
+        loadOfflinePage(guide.offlineId, offlineTarget(path, guideUrl).page)
+            .then(({ html, toc, images }) => handleResult(html, toc, images))
+            .catch(() => handleResult(''));
+    } else {
+        getGuideHtml(
+            path ? `${guideUrl}/${path}` : guideUrl,
+            browserView,
+            handleResult
+        );
+    }
 };

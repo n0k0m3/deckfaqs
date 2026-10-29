@@ -20,7 +20,7 @@ import parse, {
 } from 'html-react-parser';
 import { routerHook } from '@decky/api';
 import { ActionType } from '../../reducers/AppReducer';
-import { getGuideHtml } from '../../utils';
+import { loadGuidePage } from '../../utils';
 import { TocDropdown } from '../Nav/TocDropdown';
 import { Search } from '../Nav/Search';
 import { ScrollPanel } from '../ScrollPanel';
@@ -82,11 +82,11 @@ export const Guide = ({ fullscreen }: GuideProps) => {
                             className="deckfaqs-link"
                             onClick={(e) => {
                                 e.preventDefault();
-                                const baseUrl = currentGuide?.guideUrl ?? '';
-                                getGuideHtml(
-                                    `${baseUrl}/${anchor}`,
+                                loadGuidePage(
+                                    currentGuide,
+                                    anchor,
                                     browserView,
-                                    (result: string) => {
+                                    (result, _toc, images) => {
                                         if (anchor.indexOf('#') > 0) {
                                             anchor = anchor.substring(
                                                 anchor.indexOf('#') + 1
@@ -99,6 +99,7 @@ export const Guide = ({ fullscreen }: GuideProps) => {
                                             payload: {
                                                 ...currentGuide,
                                                 guideHtml: result,
+                                                images,
                                                 anchor,
                                             },
                                         });
@@ -126,7 +127,10 @@ export const Guide = ({ fullscreen }: GuideProps) => {
                 return (
                     <img
                         {...domNode.attribs}
-                        src={`https://gamefaqs.gamespot.com${domNode.attribs.src}`}
+                        src={
+                            currentGuide?.images?.[domNode.attribs.src] ??
+                            `https://gamefaqs.gamespot.com${domNode.attribs.src}`
+                        }
                     />
                 );
             }
@@ -153,16 +157,17 @@ export const Guide = ({ fullscreen }: GuideProps) => {
             if (elementToScrollTo) {
                 elementToScrollTo.scrollIntoView();
             } else {
-                const baseUrl = currentGuide?.guideUrl ?? '';
-                getGuideHtml(
-                    `${baseUrl}/#${anchor}`,
+                loadGuidePage(
+                    currentGuide,
+                    `#${anchor}`,
                     browserView,
-                    (result: string) => {
+                    (result, _toc, images) => {
                         dispatch({
                             type: ActionType.UPDATE_GUIDE,
                             payload: {
                                 ...currentGuide,
                                 guideHtml: result,
+                                images,
                                 anchor,
                             },
                         });

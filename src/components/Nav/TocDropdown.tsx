@@ -2,7 +2,7 @@ import { Dropdown } from '@decky/ui';
 import React, { useContext } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { ActionType } from '../../reducers/AppReducer';
-import { getGuideHtml } from '../../utils';
+import { loadGuidePage } from '../../utils';
 
 type TocDropdownProps = {
     style?: React.CSSProperties;
@@ -17,7 +17,6 @@ export const TocDropdown = ({ style }: TocDropdownProps) => {
     const handleTOCChange = (data: any) => {
         const path: string = data.data;
         let anchor: string | undefined = undefined;
-        const href = `${currentGuide?.guideUrl}/${path}`;
         if (path.startsWith('#')) {
             anchor = path.substring(1);
             dispatch({
@@ -26,7 +25,7 @@ export const TocDropdown = ({ style }: TocDropdownProps) => {
             });
         } else {
             dispatch({ type: ActionType.UPDATE_LOADING, payload: true });
-            getGuideHtml(href, browserView, (result: string) => {
+            loadGuidePage(currentGuide, path, browserView, (result, _toc, images) => {
                 if (path.indexOf('#') > 0) {
                     anchor = path.substring(path.indexOf('#') + 1);
                 }
@@ -35,6 +34,7 @@ export const TocDropdown = ({ style }: TocDropdownProps) => {
                     payload: {
                         ...currentGuide,
                         guideHtml: result,
+                        images,
                         anchor,
                         currentTocSection: path,
                     },

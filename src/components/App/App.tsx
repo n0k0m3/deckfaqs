@@ -6,6 +6,7 @@ import { ActionType } from '../../reducers/AppReducer';
 import { ignoreNonSteam, ignoreSteam } from '../../constants';
 import { Nav } from '../Nav/Nav';
 import { MainView } from './MainView';
+import { refreshSavedGuides } from '../Offline/Download';
 
 // This used to use css modules, but with the way the new React Based router works,
 // I have yet to figure out how to import css properly
@@ -14,7 +15,7 @@ const SETTINGS = 'deckfaqs_settings';
 
 export const App = () => {
     const {
-        state: { pluginState, darkMode },
+        state: { pluginState, darkMode, download },
         dispatch,
     } = useContext(AppContext);
     const mainDiv = useRef<HTMLDivElement>(null);
@@ -78,7 +79,7 @@ export const App = () => {
             const games: { appName: string; sortAsName: string }[] = [];
             const currentRunningGame = Router.MainRunningApp?.display_name;
             let runningGame: string | undefined = undefined;
-            installFolders.forEach((folder: InstallFolder) => {
+            installFolders.forEach((folder:InstallFolder) => {
                 folder.vecApps.forEach((app) => {
                     if (!ignoreSteam.includes(app.nAppID)) {
                         if (
@@ -96,7 +97,7 @@ export const App = () => {
 
             // Non-Steam Games
             const shortcuts = collectionStore.deckDesktopApps.allApps;
-            shortcuts.forEach(({ sort_as, display_name }) => {
+            shortcuts.forEach(({ sort_as, display_name } ) => {
                 if (!ignoreNonSteam.includes(display_name)) {
                     if (!runningGame && currentRunningGame == display_name)
                         runningGame = currentRunningGame;
@@ -123,6 +124,8 @@ export const App = () => {
                 payload: { games, runningGame },
             });
         });
+
+        refreshSavedGuides(dispatch);
 
         SteamClient.Storage.GetJSON(SETTINGS)
             .then((result: any) => {
@@ -203,7 +206,8 @@ export const App = () => {
                 }
 `}
             </style>
-            <Nav />
+            {/* Nav actions load pages in the hidden browser view, which a download uses */}
+            {!download && <Nav />}
             <div ref={mainDiv} style={{ padding: '10px', overflow: 'auto' }}>
                 <MainView />
             </div>

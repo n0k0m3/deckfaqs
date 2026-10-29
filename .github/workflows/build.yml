@@ -1,4 +1,4 @@
-name: Build and Release DeckFAQs
+name: Build and Release DeckFAQs Offline
 
 on:
     push:
@@ -14,51 +14,51 @@ jobs:
     build:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
 
             - name: Setup Node
-              uses: actions/setup-node@v1
+              uses: actions/setup-node@v4
               with:
-                  node-version: '18.3'
+                  node-version: '20'
 
             - name: Install Dependencies
-              run: npm install
+              run: npx pnpm@9 install --frozen-lockfile
 
             - name: build
-              run: npm run build
+              run: npx pnpm@9 build
 
             - name: copy files into build
               run: |
-                  cp plugin.json ./dist/
-                  mkdir ./dist/dist
-                  mv ./dist/index.js ./dist/dist/
+                  mkdir -p "./pkg/DeckFAQs Offline/dist"
+                  cp plugin.json package.json main.py LICENSE "./pkg/DeckFAQs Offline/"
+                  cp ./dist/index.js ./dist/index.js.map "./pkg/DeckFAQs Offline/dist/"
 
             - name: Upload package
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
-                  name: deckfaqs
-                  path: |
-                      ./dist/*
+                  name: deckfaqs-offline
+                  path: ./pkg
     release:
         needs: build
         if: startsWith(github.ref, 'refs/tags/v')
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v4
 
-            - uses: actions/download-artifact@v3
+            - uses: actions/download-artifact@v4
               with:
-                  name: deckfaqs
-                  path: deckfaqs
+                  name: deckfaqs-offline
+                  path: pkg
 
             - name: zip/tar release
               run: |
-                  zip -r deckfaqs.zip deckfaqs/*
-                  tar -czvf deckfaqs.tar.gz deckfaqs
+                  cd pkg
+                  zip -r ../deckfaqs-offline.zip "DeckFAQs Offline"
+                  tar -czvf ../deckfaqs-offline.tar.gz "DeckFAQs Offline"
 
             - name: Create a release
               uses: ncipollo/release-action@v1
               with:
-                  artifacts: 'deckfaqs.zip,deckfaqs.tar.gz'
+                  artifacts: 'deckfaqs-offline.zip,deckfaqs-offline.tar.gz'
                   bodyFile: 'release.md'
                   token: ${{ secrets.GITHUB_TOKEN }}
