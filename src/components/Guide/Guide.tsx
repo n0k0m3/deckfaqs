@@ -40,6 +40,48 @@ export const Guide = ({ fullscreen }: GuideProps) => {
         stateRef.current = state;
     }, [state]);
 
+    // Steam's ScrollPanel does not scroll on touch drags, so a drag moves it here.
+    // Native listeners: React's synthetic touch events do not fire in Steam's menu window.
+    useEffect(() => {
+        const content = guideDiv.current;
+        if (!content) return;
+        const scrollContainer = () => {
+            let element = content.parentElement;
+            while (element && element.scrollHeight <= element.clientHeight) {
+                element = element.parentElement;
+            }
+            return element;
+        };
+        let drag: { y: number; scrollTop: number } | null = null;
+        const onStart = (e: TouchEvent) => {
+            const panel = scrollContainer();
+            drag = panel
+                ? { y: e.touches[0].clientY, scrollTop: panel.scrollTop }
+                : null;
+        };
+        const onMove = (e: TouchEvent) => {
+            const panel = scrollContainer();
+            if (!panel || !drag) return;
+            const y = e.touches[0].clientY;
+            // Skip the move if the browser scrolled the panel itself
+            if (Math.abs(panel.scrollTop - drag.scrollTop) < 1) {
+                panel.scrollTop += drag.y - y;
+            }
+            drag = { y, scrollTop: panel.scrollTop };
+        };
+        const onEnd = () => {
+            drag = null;
+        };
+        content.addEventListener('touchstart', onStart, { passive: true });
+        content.addEventListener('touchmove', onMove, { passive: true });
+        content.addEventListener('touchend', onEnd);
+        return () => {
+            content.removeEventListener('touchstart', onStart);
+            content.removeEventListener('touchmove', onMove);
+            content.removeEventListener('touchend', onEnd);
+        };
+    }, [isLoading]);
+
     const options: HTMLReactParserOptions = {
         replace: (domNode) => {
             if (
