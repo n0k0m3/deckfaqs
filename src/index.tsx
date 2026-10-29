@@ -7,10 +7,10 @@ import { AppContextProvider } from './context/AppContext';
 export default definePlugin(() => {
     const windowRouter = Router.WindowStore?.GamepadUIMainWindowInstance;
     // @ts-ignore
-    const browserView = windowRouter?.CreateBrowserView('DeckFAQs');
+    const browserView = windowRouter?.CreateBrowserView('DeckFAQs Offline');
     return {
-        name: 'DeckFAQs',
-        titleView: <div className={staticClasses.Title}>DeckFAQs</div>,
+        name: 'DeckFAQs Offline',
+        titleView: <div className={staticClasses.Title}>DeckFAQs Offline</div>,
         content: (
             <AppContextProvider browserView={browserView}>
                 <App />
@@ -19,7 +19,7 @@ export default definePlugin(() => {
         icon: <FaSearch />,
         onDismount() {
             SteamClient.BrowserView.Destroy(browserView);
-            routerHook.removeRoute('/deckfaqs-fullscreen');
+            routerHook.removeRoute('/deckfaqs-offline-fullscreen');
         },
         alwaysRender: true,
     };

@@ -1,11 +1,14 @@
 {
-    "name": "DeckFAQs",
-    "author": "hulkrelax",
+    "name": "DeckFAQs Offline",
+    "author": "hulkrelax, n0k0m3",
     "flags": [],
     "api_version": 1,
     "publish": {
-        "tags": ["guides", "utility"],
-        "description": "A GameFAQs browser for the Steam Deck (both Steam and non-Steam Games)",
+        "tags": [
+            "guides",
+            "utility"
+        ],
+        "description": "A GameFAQs browser for the Steam Deck with offline guide downloads (both Steam and non-Steam Games)",
         "image": "https://raw.githubusercontent.com/hulkrelax/deckfaqs/main/images/release.png"
     }
 }

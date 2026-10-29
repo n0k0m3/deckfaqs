@@ -217,7 +217,7 @@ export const Guide = ({ fullscreen }: GuideProps) => {
 
     useEffect(() => {
         if (!fullscreen) {
-            routerHook.addRoute('/deckfaqs-fullscreen', () => {
+            routerHook.addRoute('/deckfaqs-offline-fullscreen', () => {
                 return (
                     <AppContextProvider
                         incomingState={stateRef.current}
@@ -230,7 +230,8 @@ export const Guide = ({ fullscreen }: GuideProps) => {
         }
         scrollToAnchor(currentGuide?.anchor);
         return function cleanup() {
-            if (!fullscreen) routerHook.removeRoute('/deckfaqs-fullscreen');
+            if (!fullscreen)
+                routerHook.removeRoute('/deckfaqs-offline-fullscreen');
         };
     }, []);
     return useMemo(

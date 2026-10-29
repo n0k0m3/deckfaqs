@@ -144,7 +144,7 @@ export const Nav = () => {
                                     setTimeout(
                                         () =>
                                             Navigation.Navigate(
-                                                '/deckfaqs-fullscreen'
+                                                '/deckfaqs-offline-fullscreen'
                                             ),
                                         100
                                     );

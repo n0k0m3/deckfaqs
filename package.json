@@ -1,7 +1,7 @@
 {
-    "name": "deckfaqs",
-    "version": "1.8.0",
-    "description": "GameFAQs browser for the Steam Deck",
+    "name": "deckfaqs-offline",
+    "version": "1.9.0",
+    "description": "GameFAQs browser for the Steam Deck with offline guides",
     "scripts": {
         "build": "rollup -c",
         "typecheck": "tsc --noEmit"
